@@ -1,3 +1,4 @@
+
 #pragma once
 #ifndef GENKEY_H
 #define GENKEY_H
@@ -28,3 +29,4 @@ static int Index[MAXLENGTH] = {0};
 extern int len;
 
 #endif
+

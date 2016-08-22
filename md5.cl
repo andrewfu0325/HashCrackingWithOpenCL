@@ -123,3 +123,4 @@ __kernel void md5(__global char* str_buf, int len, __global char* hash) {
   __global unsigned int *g = str;
   g[0] = res;
 }
+

@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
   if(argc != 3) {
     cout << "Usage: ./a.out [CPU_WORK](MIN=0, MAX=16) [MD5_STRING]\n"
          << "[CPU_WORK]=The amount of work for CPU to execute (GPU_WORK = 16 - CPU_WORK)\n"
-         << "[MD5_STRING]=MD5 hash to crack (ex. deadbeef=4f41243847da693a4f356c0486114bc6)\n";
+         << "[MD5_STRING]=MD5 hash to crack (ex. little=aae6635e044ac56046b2893a529b5114)\n";
      return FAILURE;
   }
   int CPU_EXE = atoi(argv[1]);

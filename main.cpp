@@ -18,7 +18,7 @@
 #define CPU_KERNEL_NAME "md5"
 
 
-#define GPU_ONLY 0
+//#define GPU_ONLY 0
 using namespace std;
 int len = GPU + 1;
 
@@ -70,18 +70,21 @@ void hex_decode(unsigned char *buf, const char *hex) {
 
 int main(int argc, char* argv[])
 {
-  if(argc != 2) {
-    cout << "Usage: ./a.out [GPU_WORK](MIN=0, MAX=16)\n"
-         << "The CPU and GPU will co-work to crack the md5 hashing\n"
-         << "CPU_WORK = 16 - GPU_WORK\n";
+  if(argc != 3) {
+    cout << "Usage: ./a.out [CPU_WORK](MIN=0, MAX=16) [MD5_STRING]\n"
+         << "[CPU_WORK]=The amount of work for CPU to execute (GPU_WORK = 16 - CPU_WORK)\n"
+         << "[MD5_STRING]=MD5 hash to crack (ex. deadbeef=4f41243847da693a4f356c0486114bc6)\n";
      return FAILURE;
   }
-  int GPU_EXE = atoi(argv[1]);
-  if(GPU_EXE < 0 || GPU_EXE > 16) {
+  int CPU_EXE = atoi(argv[1]);
+  if(CPU_EXE < 0 || CPU_EXE > 16) {
      cout << "The amount of work for GPU_EXE must be between 0 and 16\n";
      return FAILURE;
   }
-  int CPU_EXE = P64 - GPU_EXE;
+  int GPU_EXE = P64 - CPU_EXE;
+  if(CPU_EXE == 0) {
+#define GPU_ONLY 1
+  }
 
   /*Step1: Getting platforms and choose an available one.*/
   cl_uint numPlatforms;  //the NO. of platforms
@@ -280,9 +283,7 @@ int main(int argc, char* argv[])
   bool md5_fail = false;
   int key_id = 0; 
   unsigned char hash[17];
-  string hash_in;
-  cerr << "Enter MD5 hash to crack [ex. md5(deadbeef)=4f41243847da693a4f356c0486114bc6]: ";
-  cin >> hash_in;
+  string hash_in(argv[2]);
   hex_decode(hash, hash_in.c_str());
   char(*outputKey)[MAXLENGTH] = new char[K][MAXLENGTH];
   key = new char[K][MAXLENGTH];

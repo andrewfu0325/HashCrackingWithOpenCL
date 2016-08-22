@@ -13,12 +13,10 @@
 #define ENABLE_PROFILEING 0
 #define GPU_FILE_NAME "md5.cl"
 #define CPU_FILE_NAME "md5.cl"
-#define P64 16
+#define P64 256
 #define GPU_KERNEL_NAME "md5"
 #define CPU_KERNEL_NAME "md5"
 
-
-//#define GPU_ONLY 0
 using namespace std;
 int len = GPU + 1;
 
@@ -82,9 +80,12 @@ int main(int argc, char* argv[])
      return FAILURE;
   }
   int GPU_EXE = P64 - CPU_EXE;
+  bool GPU_ONLY = false;
   if(CPU_EXE == 0) {
-#define GPU_ONLY 1
+    GPU_ONLY = true;
   }
+  printf("CPU_EXE: %d\n", CPU_EXE);
+  printf("GPU_EXE: %d\n", GPU_EXE);
 
   /*Step1: Getting platforms and choose an available one.*/
   cl_uint numPlatforms;  //the NO. of platforms
@@ -295,15 +296,15 @@ int main(int argc, char* argv[])
     return FAILURE;
   }
 
-#if !GPU_ONLY
-  status = clEnqueueWriteBuffer(cpuCmmdQue, cpuHashBuffer, CL_FALSE, 0, HASHLENGTH * sizeof(char), hash, 0, NULL, NULL);
-  if (status != CL_SUCCESS)
-  {
-    cout << status << endl;
-    cout << "Error: Enqueuing write cpuHashBuffer!" << endl;
-    return FAILURE;
+  if (!GPU_ONLY) {
+    status = clEnqueueWriteBuffer(cpuCmmdQue, cpuHashBuffer, CL_FALSE, 0, HASHLENGTH * sizeof(char), hash, 0, NULL, NULL);
+    if (status != CL_SUCCESS)
+    {
+      cout << status << endl;
+      cout << "Error: Enqueuing write cpuHashBuffer!" << endl;
+      return FAILURE;
+    }
   }
-#endif
   cerr << "Length = " << len << " ";
 
   while (len <= MAXLENGTH){
@@ -328,16 +329,16 @@ int main(int argc, char* argv[])
       }
       char(*cpu_key)[16] = &key[((gsz * GPU_EXE) / P64)];
 
-#if !GPU_ONLY
-      status = clEnqueueWriteBuffer(cpuCmmdQue, cpuKeyBuffer, CL_TRUE, 0, (gsz - (gsz * GPU_EXE) / P64)*MAXLENGTH * sizeof(char), cpu_key, 0, NULL, NULL);
+    if (!GPU_ONLY) {
+        status = clEnqueueWriteBuffer(cpuCmmdQue, cpuKeyBuffer, CL_TRUE, 0, (gsz - (gsz * GPU_EXE) / P64)*MAXLENGTH * sizeof(char), cpu_key, 0, NULL, NULL);
       if (status != CL_SUCCESS)
       {
         cout << status << endl;
         cout << "Error: Enqueuing write cpuKeyBuffer!" << endl;
         return FAILURE;
       }
-#endif
     }
+  }
 
 
     status |= clSetKernelArg(gpuKernel, 1, sizeof(int), (void *)&len);
@@ -364,26 +365,26 @@ int main(int argc, char* argv[])
         }
       }
 
-#if !GPU_ONLY
-      size_t cpu_gsz = gsz - (gsz * GPU_EXE) / P64;
-      size_t cpu_lsz = 2048;
-      if (0 && (gsz * CPU_EXE / P64) % 2048 == 0){
-        status = clEnqueueNDRangeKernel(cpuCmmdQue, cpuKernel, 1, NULL, (const size_t*)&cpu_gsz, &cpu_lsz, 0, NULL, NULL);
-        if (status != CL_SUCCESS)
-        {
-          cout << "Error: Enqueuing CPU kernel!" << endl;
-          return FAILURE;
+      if (!GPU_ONLY) {
+        size_t cpu_gsz = gsz - (gsz * GPU_EXE) / P64;
+        size_t cpu_lsz = 512;
+        if (0 && (gsz * CPU_EXE / P64) % cpu_lsz == 0){
+          status = clEnqueueNDRangeKernel(cpuCmmdQue, cpuKernel, 1, NULL, (const size_t*)&cpu_gsz, &cpu_lsz, 0, NULL, NULL);
+          if (status != CL_SUCCESS)
+          {
+            cout << "Error: Enqueuing CPU kernel!" << endl;
+            return FAILURE;
+          }
+        }
+        else{
+          status = clEnqueueNDRangeKernel(cpuCmmdQue, cpuKernel, 1, NULL, (const size_t*)&cpu_gsz, NULL, 0, NULL, NULL);
+          if (status != CL_SUCCESS)
+          {
+            cout << "Error: Enqueuing CPU kernel!" << endl;
+            return FAILURE;
+          }
         }
       }
-      else{
-        status = clEnqueueNDRangeKernel(cpuCmmdQue, cpuKernel, 1, NULL, (const size_t*)&cpu_gsz, NULL, 0, NULL, NULL);
-        if (status != CL_SUCCESS)
-        {
-          cout << "Error: Enqueuing CPU kernel!" << endl;
-          return FAILURE;
-        }
-      }
-#endif
       status = clEnqueueReadBuffer(gpuCmmdQue, gpuKeyBuffer, CL_TRUE, 0, ((gsz * GPU_EXE) / P64)* MAXLENGTH * sizeof(char), outputKey, 0, NULL, NULL);
       if (status != CL_SUCCESS)
       {
@@ -391,15 +392,15 @@ int main(int argc, char* argv[])
         cout << "Error: Enqueuing read gpuKeyBuffer!" << endl;
         return FAILURE;
       }
-#if !GPU_ONLY
-      char(*cpu_outputKey)[16] = &outputKey[((gsz * GPU_EXE) / P64)];
-      status = clEnqueueReadBuffer(cpuCmmdQue, cpuKeyBuffer, CL_TRUE, 0, (gsz - (gsz * GPU_EXE) / P64)* MAXLENGTH * sizeof(char), cpu_outputKey, 0, NULL, NULL);
-      if (status != CL_SUCCESS)
-      {
-        cout << "Error: Enqueuing read cpuKeyBuffer!" << endl;
-        return FAILURE;
+      if (!GPU_ONLY) {
+        char(*cpu_outputKey)[16] = &outputKey[((gsz * GPU_EXE) / P64)];
+        status = clEnqueueReadBuffer(cpuCmmdQue, cpuKeyBuffer, CL_TRUE, 0, (gsz - (gsz * GPU_EXE) / P64)* MAXLENGTH * sizeof(char), cpu_outputKey, 0, NULL, NULL);
+        if (status != CL_SUCCESS)
+        {
+          cout << "Error: Enqueuing read cpuKeyBuffer!" << endl;
+          return FAILURE;
+        }
       }
-#endif
     }
     else
     {

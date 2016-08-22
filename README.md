@@ -10,5 +10,9 @@
         2. Make sure libOpenCL.so is in your LD_LIBRARY_PATH
         3. make
         4. echo -n STRING_TO_CRACK | md5sum
-        5. ./a.out [GPU_WORK](MIN=0, MAX=16)
-        6. Paste your md5ed string
+        5. ./a.out [GPU_WORK](MIN=0, MAX=16) [MD5_STRING]
+
+### Auto-testing 
+        ./go.sh [MD5_STRING]
+        Suggest use a 6-letter (or up) word to see the differences
+        Ex. md5(little)=aae6635e044ac56046b2893a529b5114
